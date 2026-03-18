@@ -17,7 +17,9 @@ def fetch_bot_rates():
         cols = row.select("td")
         if len(cols) < 5:
             continue
-        currency = cols[0].get_text(strip=True)
+        # col[0] 幣別文字因 RWD 設計重複，取前半段即可
+        raw = cols[0].get_text(strip=True)
+        currency = raw[: len(raw) // 2] if len(raw) % 2 == 0 and raw[: len(raw) // 2] == raw[len(raw) // 2 :] else raw
         buy_cash = cols[1].get_text(strip=True)
         sell_cash = cols[2].get_text(strip=True)
         buy_spot = cols[3].get_text(strip=True)
