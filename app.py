@@ -36,6 +36,7 @@ with st.spinner("抓取匯率中..."):
         df = fetch_bot_rates()
     except Exception as e:
         st.error(f"資料抓取失敗：{e}")
+        st.exception(e)
         st.stop()
 
 # ── 搜尋過濾 ──────────────────────────────────────────────
