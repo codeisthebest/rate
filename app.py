@@ -1,27 +1,28 @@
 import requests
 import pandas as pd
-from datetime import datetime
 from io import StringIO
+from datetime import datetime
 import streamlit as st
 
 
 def fetch_bot_rates():
-    # 台銀官方 CSV API（比 HTML 解析穩定）
     url = "https://rate.bot.com.tw/xrt/flcsv/0/day"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     response = requests.get(url, headers=headers, timeout=15)
-    response.encoding = "utf-8"
+    response.encoding = "utf-8-sig"  # 去除 BOM
 
-    df = pd.read_csv(StringIO(response.text), header=1)
+    df = pd.read_csv(StringIO(response.text), header=0, index_col=0)
+    # 欄位結構：現金買入=col2, 即期買入=col3, 現金賣出=col12, 即期賣出=col13
 
-    # 只保留需要的欄位
-    df = df.iloc[:, :6]
-    df.columns = ["幣別", "幣別代碼", "現金買入", "現金賣出", "即期買入", "即期賣出"]
-    df = df.dropna(subset=["幣別"]).reset_index(drop=True)
-
-    return df
+    result = pd.DataFrame({
+        "幣別代碼": df.index,
+        "現金買入": df.iloc[:, 1].values,
+        "即期買入": df.iloc[:, 2].values,
+        "現金賣出": df.iloc[:, 11].values,
+        "即期賣出": df.iloc[:, 12].values,
+    })
+    result = result[result["幣別代碼"].notna()].reset_index(drop=True)
+    return result
 
 
 # ── 頁面設定 ──────────────────────────────────────────────
@@ -38,13 +39,9 @@ with st.spinner("抓取匯率中..."):
         st.stop()
 
 # ── 搜尋過濾 ──────────────────────────────────────────────
-keyword = st.text_input("搜尋幣別", placeholder="例如：美金、日圓、USD")
+keyword = st.text_input("搜尋幣別代碼", placeholder="例如：USD、JPY、EUR")
 if keyword:
-    mask = (
-        df["幣別"].str.contains(keyword, case=False, na=False) |
-        df["幣別代碼"].str.contains(keyword, case=False, na=False)
-    )
-    df = df[mask]
+    df = df[df["幣別代碼"].str.contains(keyword.upper(), na=False)]
 
 # ── 顯示表格 ──────────────────────────────────────────────
 st.dataframe(df, use_container_width=True, hide_index=True)
