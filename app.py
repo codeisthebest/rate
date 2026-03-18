@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
-from scraper import fetch_bot_rates, save_to_csv
+from scraper import fetch_bot_rates
 from datetime import datetime
-import os
 
 st.set_page_config(page_title="台灣銀行即時匯率", page_icon="💱", layout="wide")
 
@@ -15,9 +14,7 @@ if st.button("🔄 重新抓取最新匯率"):
 
 @st.cache_data(ttl=600)
 def load_data():
-    df = fetch_bot_rates()
-    save_to_csv(df)
-    return df
+    return fetch_bot_rates()
 
 with st.spinner("抓取匯率中..."):
     df = load_data()
